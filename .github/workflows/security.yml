@@ -1,0 +1,58 @@
+name: Security Pipeline for Juice Shop
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  security-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    # 🍊 Build Juice Shop
+    - name: Build Juice Shop
+      run: |
+        npm install
+        npm run build
+
+    # 🧩 Syft - SBOM oluştur
+    - name: Generate SBOM with Syft
+      uses: anchore/sbom-action@v0.15.4
+      with:
+        format: cyclonedx-json
+        output-file: sbom.json
+
+    # 🔍 Gitleaks - Secret Scan
+    - name: Run Gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      with:
+        args: "--verbose --report-path=gitleaks-report.json"
+
+    # 📦 Upload artifacts
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v2
+      with:
+        name: sbom
+        path: sbom.json
+
+    - name: Upload Gitleaks Report
+      uses: actions/upload-artifact@v2
+      with:
+        name: gitleaks-report
+        path: gitleaks-report.json
+
+    # 🚀 Dummy Deploy Adımı
+    - name: Dummy Deploy
+      run: echo "Pretending to deploy Juice Shop 🚀"
+
